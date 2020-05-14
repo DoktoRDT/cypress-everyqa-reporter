@@ -10,29 +10,16 @@ export class Utils {
         return matchedId[0].trim().slice(3);
     }
 
-    static getScreenshotsObjectFromFolder(folderPath: string) {
+    static getScreenshotsPaths(folderPath: string) {
         if (!fs.existsSync(folderPath)) {
-            return {};
+            return [];
         }
         return fs.readdirSync(folderPath)
             .reduce((acc, screenshotName) => {
-                const everyqaId = Utils.getEveryqaId(screenshotName);
-                if (!everyqaId) {
-                    return acc;
+                if (this.getEveryqaId(screenshotName)) {
+                    acc.push(path.join(folderPath, screenshotName));
                 }
-                const screenshot: any = {
-                    fieldname: 'attachments',
-                    originalname: screenshotName,
-
-                };
-                screenshot.buffer = fs.readFileSync(folderPath + '/' + screenshotName);
-                screenshot.mimetype = 'image/' + path.extname(screenshotName).slice(1);
-                screenshot.size = screenshot.buffer.byteLength;
-                if (!acc[everyqaId]) {
-                    acc[everyqaId] = [];
-                }
-                acc[everyqaId].push(screenshot);
                 return acc;
-            }, {});
+            }, []);
     }
 }

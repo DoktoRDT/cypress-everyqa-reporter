@@ -1,12 +1,25 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
 var deasync = require("deasync");
+var FormData = require("form-data");
+var fs_1 = require("fs");
+var deasync_1 = require("deasync");
 function request(options) {
     return axios_1.default(options)
         .then(function (res) { return res.data; })
         .catch(function (e) {
-        console.error(e);
         throw e;
     });
 }
@@ -46,6 +59,25 @@ var EveryqaInstance = /** @class */ (function () {
             _this.runId = res._id;
         });
     };
+    EveryqaInstance.prototype.sendScreenshots = function (array) {
+        var a = true;
+        var result;
+        var form = new FormData();
+        array.forEach(function (screenshotPath) {
+            form.append('attachments[]', fs_1.createReadStream(screenshotPath));
+        });
+        request({
+            url: everyqaApiUrl + 'attachments/many',
+            data: form,
+            method: 'POST',
+            headers: __assign(__assign({}, form.getHeaders()), { Authorization: this.token })
+        }).then(function (res) {
+            result = res;
+            a = false;
+        });
+        deasync_1.loopWhile(function () { return a; });
+        return result;
+    };
     EveryqaInstance.prototype.publish = function (body) {
         var _this = this;
         if (!Object.keys(body.tests).length) {
@@ -58,9 +90,8 @@ var EveryqaInstance = /** @class */ (function () {
             });
         }
         deasync.loopWhile(function () { return !_this.runId; });
-        body.runId = this.runId;
         return request({
-            url: everyqaApiUrl + 'runs/fill',
+            url: everyqaApiUrl + 'runs/' + this.runId + '/fill',
             data: body,
             method: 'POST',
             headers: {

@@ -1,11 +1,13 @@
 import {default as axios} from 'axios';
 import * as deasync from 'deasync';
+import * as FormData from 'form-data';
+import {createReadStream, readFileSync, statSync} from 'fs';
+import {loopWhile} from 'deasync';
 
 function request(options) {
     return axios(options)
         .then((res) => res.data)
         .catch((e) => {
-            console.error(e);
             throw e;
         });
 }
@@ -49,6 +51,29 @@ export class EveryqaInstance {
             });
     }
 
+    sendScreenshots(array) {
+        let a = true;
+        let result: any[];
+        const form = new FormData();
+        array.forEach(screenshotPath => {
+            form.append('attachments[]', createReadStream(screenshotPath));
+        });
+        request({
+            url: everyqaApiUrl + 'attachments/many',
+            data: form,
+            method: 'POST',
+            headers: {
+                ...form.getHeaders(),
+                Authorization: this.token,
+            }
+        }).then(res => {
+            result = res;
+            a = false
+        });
+        loopWhile(() => a);
+        return result;
+    }
+
     publish(body) {
         if (!Object.keys(body.tests).length) {
             return ;
@@ -60,10 +85,9 @@ export class EveryqaInstance {
             });
         }
         deasync.loopWhile(() => !this.runId);
-        body.runId = this.runId;
         return request(
             {
-                url: everyqaApiUrl + 'runs/fill',
+                url: everyqaApiUrl + 'runs/' + this.runId + '/fill',
                 data: body,
                 method: 'POST',
                 headers: {

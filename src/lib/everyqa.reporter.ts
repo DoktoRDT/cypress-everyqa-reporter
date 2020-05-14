@@ -2,13 +2,13 @@ import {Runner} from 'mocha';
 import {EveryqaInstance} from './everyqa.instance';
 import {Utils} from './utils';
 import * as path from 'path';
-import Test = Mocha.Test;
 import {EveryqaReporterConfig} from './everyqa.reporter.config';
+import Test = Mocha.Test;
+import {StatusesEnum} from './statuses.enum';
 
 interface ExtendedTest extends Test {
     everyqaCaseId: string;
 }
-
 
 export class EveryqaReporter {
     private specPath: string;
@@ -27,15 +27,8 @@ export class EveryqaReporter {
         const tests: {
             [key: string]: {
                 everyqaCaseId: string,
-                result: {
-                    status: string,
-                    notes: string,
-                    assignedTo: string,
-                    attachmentIds: string[],
-                    jiraKey: string
-                },
-                screenshots: any[],
-                state: string
+                attachmentIds: string[],
+                status: string
             }
         } = {};
 
@@ -51,10 +44,10 @@ export class EveryqaReporter {
             let status;
             switch (test.state) {
                 case 'failed':
-                    status = 'failed';
+                    status = StatusesEnum.Failed;
                     break;
                 case 'passed':
-                    status = 'passed';
+                    status = StatusesEnum.Passed;
                     break;
                 default:
                     return;
@@ -62,34 +55,22 @@ export class EveryqaReporter {
 
             tests[test.everyqaCaseId] = {
                 everyqaCaseId: test.everyqaCaseId,
-                result: {
-                    status,
-                    notes: 'None',
-                    assignedTo: 'None',
-                    attachmentIds: [],
-                    jiraKey: ''
-                },
-                screenshots: [],
-                state: test.state
+                attachmentIds: [],
+                status
             };
         });
 
         runner.on('end', () => {
             const actualPath = this.specPath.replace(this.config.integrationFolder, this.config.screenshotsFolder);
             const diffPath = actualPath.replace('/actual', '/diff');
-            const actualScreenshotsObject = Utils.getScreenshotsObjectFromFolder(actualPath);
-            const diffScreenshotsObject = Utils.getScreenshotsObjectFromFolder(diffPath);
-            for (const id of Object.keys(tests)) {
-                if (tests[id].state !== 'failed') {
-                    continue;
-                }
-                if (actualScreenshotsObject[id]) {
-                    tests[id].screenshots.push(...actualScreenshotsObject[id]);
-                }
-                if (diffScreenshotsObject[id]) {
-                    tests[id].screenshots.push(...diffScreenshotsObject[id]);
-                }
-            }
+            const actualScreenshotsObject = Utils.getScreenshotsPaths(actualPath);
+            const diffScreenshotsObject = Utils.getScreenshotsPaths(diffPath);
+            everyqaInstance.sendScreenshots([...actualScreenshotsObject, ...diffScreenshotsObject])
+                .forEach(screenshot => {
+                    const caseId = Utils.getEveryqaId(screenshot.name);
+                    tests[caseId].attachmentIds.push(screenshot._id);
+                });
+
             everyqaInstance.publish({
                 sprintId: this.config.sprintId,
                 projectId: this.config.projectId,

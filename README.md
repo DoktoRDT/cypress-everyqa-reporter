@@ -57,7 +57,3 @@ ID should not adjoin the title:
 **runId**: _string_  test run for sending results.
 
 **screenshotsFolder** and **integrationFolder** duplicates of main `cypress.json` properties of the same name
-
-## Author
-
-Novikov Alexander - [github](https://github.com/DoktoRDT)

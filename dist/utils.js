@@ -12,29 +12,18 @@ var Utils = /** @class */ (function () {
         }
         return matchedId[0].trim().slice(3);
     };
-    Utils.getScreenshotsObjectFromFolder = function (folderPath) {
+    Utils.getScreenshotsPaths = function (folderPath) {
+        var _this = this;
         if (!fs.existsSync(folderPath)) {
-            return {};
+            return [];
         }
         return fs.readdirSync(folderPath)
             .reduce(function (acc, screenshotName) {
-            var everyqaId = Utils.getEveryqaId(screenshotName);
-            if (!everyqaId) {
-                return acc;
+            if (_this.getEveryqaId(screenshotName)) {
+                acc.push(path.join(folderPath, screenshotName));
             }
-            var screenshot = {
-                fieldname: 'attachments',
-                originalname: screenshotName,
-            };
-            screenshot.buffer = fs.readFileSync(folderPath + '/' + screenshotName);
-            screenshot.mimetype = 'image/' + path.extname(screenshotName).slice(1);
-            screenshot.size = screenshot.buffer.byteLength;
-            if (!acc[everyqaId]) {
-                acc[everyqaId] = [];
-            }
-            acc[everyqaId].push(screenshot);
             return acc;
-        }, {});
+        }, []);
     };
     return Utils;
 }());

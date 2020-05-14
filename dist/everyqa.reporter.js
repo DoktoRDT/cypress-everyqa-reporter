@@ -1,9 +1,17 @@
 "use strict";
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var everyqa_instance_1 = require("./everyqa.instance");
 var utils_1 = require("./utils");
 var path = require("path");
 var everyqa_reporter_config_1 = require("./everyqa.reporter.config");
+var statuses_enum_1 = require("./statuses.enum");
 var EveryqaReporter = /** @class */ (function () {
     function EveryqaReporter(runner, options) {
         var _this = this;
@@ -27,45 +35,30 @@ var EveryqaReporter = /** @class */ (function () {
             var status;
             switch (test.state) {
                 case 'failed':
-                    status = 'failed';
+                    status = statuses_enum_1.StatusesEnum.Failed;
                     break;
                 case 'passed':
-                    status = 'passed';
+                    status = statuses_enum_1.StatusesEnum.Passed;
                     break;
                 default:
                     return;
             }
             tests[test.everyqaCaseId] = {
                 everyqaCaseId: test.everyqaCaseId,
-                result: {
-                    status: status,
-                    notes: 'None',
-                    assignedTo: 'None',
-                    attachmentIds: [],
-                    jiraKey: ''
-                },
-                screenshots: [],
-                state: test.state
+                attachmentIds: [],
+                status: status
             };
         });
         runner.on('end', function () {
-            var _a, _b;
             var actualPath = _this.specPath.replace(_this.config.integrationFolder, _this.config.screenshotsFolder);
             var diffPath = actualPath.replace('/actual', '/diff');
-            var actualScreenshotsObject = utils_1.Utils.getScreenshotsObjectFromFolder(actualPath);
-            var diffScreenshotsObject = utils_1.Utils.getScreenshotsObjectFromFolder(diffPath);
-            for (var _i = 0, _c = Object.keys(tests); _i < _c.length; _i++) {
-                var id = _c[_i];
-                if (tests[id].state !== 'failed') {
-                    continue;
-                }
-                if (actualScreenshotsObject[id]) {
-                    (_a = tests[id].screenshots).push.apply(_a, actualScreenshotsObject[id]);
-                }
-                if (diffScreenshotsObject[id]) {
-                    (_b = tests[id].screenshots).push.apply(_b, diffScreenshotsObject[id]);
-                }
-            }
+            var actualScreenshotsObject = utils_1.Utils.getScreenshotsPaths(actualPath);
+            var diffScreenshotsObject = utils_1.Utils.getScreenshotsPaths(diffPath);
+            everyqaInstance.sendScreenshots(__spreadArrays(actualScreenshotsObject, diffScreenshotsObject))
+                .forEach(function (screenshot) {
+                var caseId = utils_1.Utils.getEveryqaId(screenshot.name);
+                tests[caseId].attachmentIds.push(screenshot._id);
+            });
             everyqaInstance.publish({
                 sprintId: _this.config.sprintId,
                 projectId: _this.config.projectId,
