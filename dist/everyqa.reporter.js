@@ -7,6 +7,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EveryqaReporter = void 0;
 var everyqa_instance_1 = require("./everyqa.instance");
 var utils_1 = require("./utils");
 var path = require("path");
@@ -28,8 +29,8 @@ var EveryqaReporter = /** @class */ (function () {
             _this.specPath = path.resolve(runner.suite.file);
         });
         runner.on('test end', function (test) {
-            test.everyqaCaseId = utils_1.Utils.getEveryqaId(test.title);
-            if (!test.everyqaCaseId) {
+            var everyqaCaseId = utils_1.Utils.getEveryqaId(test.title);
+            if (!everyqaCaseId) {
                 return;
             }
             var status;
@@ -43,18 +44,19 @@ var EveryqaReporter = /** @class */ (function () {
                 default:
                     return;
             }
-            tests[test.everyqaCaseId] = {
-                everyqaCaseId: test.everyqaCaseId,
+            tests[everyqaCaseId] = {
+                everyqaCaseId: everyqaCaseId,
+                status: status,
                 attachmentIds: [],
-                status: status
             };
         });
         runner.on('end', function () {
             var actualPath = _this.specPath.replace(_this.config.integrationFolder, _this.config.screenshotsFolder);
             var diffPath = actualPath.replace('/actual', '/diff');
-            var actualScreenshotsObject = utils_1.Utils.getScreenshotsPaths(actualPath);
-            var diffScreenshotsObject = utils_1.Utils.getScreenshotsPaths(diffPath);
-            everyqaInstance.sendScreenshots(__spreadArrays(actualScreenshotsObject, diffScreenshotsObject))
+            var actualScreenshotsPaths = utils_1.Utils.getScreenshotsPaths(actualPath);
+            var diffScreenshotsPaths = utils_1.Utils.getScreenshotsPaths(diffPath);
+            var screenshotsForUpload = __spreadArrays(actualScreenshotsPaths, diffScreenshotsPaths).filter(function (screenshot) { return tests[utils_1.Utils.getEveryqaId(path.basename(screenshot))].status === statuses_enum_1.StatusesEnum.Failed; });
+            everyqaInstance.sendScreenshots(screenshotsForUpload)
                 .forEach(function (screenshot) {
                 var caseId = utils_1.Utils.getEveryqaId(screenshot.name);
                 tests[caseId].attachmentIds.push(screenshot._id);

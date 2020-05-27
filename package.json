@@ -1,6 +1,6 @@
 {
   "name": "everyqa-cypress-reporter",
-  "version": "0.0.2",
+  "version": "0.0.8",
   "description": "Cypress reporter for sending results to Everyqa",
   "main": "index.js",
   "scripts": {
@@ -10,16 +10,16 @@
     "axios": "^0.19.2",
     "deasync": "^0.1.20",
     "form-data": "^3.0.0",
-    "mocha": "^7.1.2"
+    "mocha": "^7.2.0"
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
-    "@types/deasync": "^0.1.0",
+    "@types/deasync": "^0.1.1",
     "@types/form-data": "^2.5.0",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^13.13.5",
+    "@types/node": "^13.13.12",
     "rimraf": "^2.7.1",
-    "typescript": "^3.8.3"
+    "typescript": "^3.9.5"
   },
   "repository": {
     "type": "git",

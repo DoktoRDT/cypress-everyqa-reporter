@@ -28,16 +28,16 @@ Add reporter to your `cypress.json`:
 ...
 ```
 
-Titles of your tests should contain an ID of your Everyqa test cases with "EQ-" prefix:
+Titles of your tests should contain an ID of your Everyqa test cases with "EQ-" prefix in square brackets:
 
 ```Javascript
-"EQ-0123456789abcdef01234567 my test title"
-"My test EQ-0123456789abcdef01234567 title"
+"[EQ-0123456789abcdef01234567] my test title"
+"My test [EQ-0123456789abcdef01234567] title"
 ```
 ID should not adjoin the title:
 ```Javascript
-"EQ-0123456789abcdef01234567my test title"
-"My testEQ-0123456789abcdef01234567title"
+"[EQ-0123456789abcdef01234567]my test title"
+"My test[EQ-0123456789abcdef01234567title]"
 ```
 
 ## Reporter Options

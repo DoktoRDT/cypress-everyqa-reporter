@@ -1,8 +1,25 @@
 import {default as axios} from 'axios';
 import * as deasync from 'deasync';
-import * as FormData from 'form-data';
-import {createReadStream, readFileSync, statSync} from 'fs';
 import {loopWhile} from 'deasync';
+import * as FormData from 'form-data';
+import {createReadStream} from 'fs';
+import {TestsObject} from "./everyqa.reporter";
+
+export interface PublishRequest {
+    sprintId: string,
+    projectId: string,
+    tests: TestsObject,
+}
+
+export interface ScreenshotsResponse {
+    _id: string;
+    name: string;
+    link: string;
+    size: number;
+    createdAt: Date;
+    networkId: string;
+    isDeleted: boolean;
+}
 
 function request(options) {
     return axios(options)
@@ -18,7 +35,7 @@ export class EveryqaInstance {
     user;
     runId;
     token;
-    static instance: EveryqaInstance;
+    private static instance: EveryqaInstance;
 
     constructor({email, password}) {
         if (!EveryqaInstance.instance) {
@@ -51,15 +68,15 @@ export class EveryqaInstance {
             });
     }
 
-    sendScreenshots(array) {
-        let a = true;
-        let result: any[];
+    sendScreenshots(screenshotPaths: string[]) {
+        let isRequestProcessing = true;
+        let result: ScreenshotsResponse[];
         const form = new FormData();
-        array.forEach(screenshotPath => {
+        screenshotPaths.forEach(screenshotPath => {
             form.append('attachments[]', createReadStream(screenshotPath));
         });
         request({
-            url: everyqaApiUrl + 'attachments/many',
+            url: everyqaApiUrl + 'attachments',
             data: form,
             method: 'POST',
             headers: {
@@ -68,15 +85,15 @@ export class EveryqaInstance {
             }
         }).then(res => {
             result = res;
-            a = false
+            isRequestProcessing = false
         });
-        loopWhile(() => a);
+        loopWhile(() => isRequestProcessing);
         return result;
     }
 
-    publish(body) {
-        if (!Object.keys(body.tests).length) {
-            return ;
+    publish(body: PublishRequest) {
+        if (!body.tests || !Object.keys(body.tests).length) {
+            return;
         }
         if (!this.runId) {
             this.createTestRun({
@@ -85,7 +102,8 @@ export class EveryqaInstance {
             });
         }
         deasync.loopWhile(() => !this.runId);
-        return request(
+        let isRunFilled = false;
+        request(
             {
                 url: everyqaApiUrl + 'runs/' + this.runId + '/fill',
                 data: body,
@@ -93,8 +111,10 @@ export class EveryqaInstance {
                 headers: {
                     Authorization: this.token,
                 }
+            }).then(() => {
+                isRunFilled = true
             });
-
+        deasync.loopWhile(() => !isRunFilled);
     }
 
     private login({email, password}) {

@@ -11,11 +11,12 @@ var __assign = (this && this.__assign) || function () {
     return __assign.apply(this, arguments);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EveryqaInstance = void 0;
 var axios_1 = require("axios");
 var deasync = require("deasync");
+var deasync_1 = require("deasync");
 var FormData = require("form-data");
 var fs_1 = require("fs");
-var deasync_1 = require("deasync");
 function request(options) {
     return axios_1.default(options)
         .then(function (res) { return res.data; })
@@ -59,28 +60,28 @@ var EveryqaInstance = /** @class */ (function () {
             _this.runId = res._id;
         });
     };
-    EveryqaInstance.prototype.sendScreenshots = function (array) {
-        var a = true;
+    EveryqaInstance.prototype.sendScreenshots = function (screenshotPaths) {
+        var isRequestProcessing = true;
         var result;
         var form = new FormData();
-        array.forEach(function (screenshotPath) {
+        screenshotPaths.forEach(function (screenshotPath) {
             form.append('attachments[]', fs_1.createReadStream(screenshotPath));
         });
         request({
-            url: everyqaApiUrl + 'attachments/many',
+            url: everyqaApiUrl + 'attachments',
             data: form,
             method: 'POST',
             headers: __assign(__assign({}, form.getHeaders()), { Authorization: this.token })
         }).then(function (res) {
             result = res;
-            a = false;
+            isRequestProcessing = false;
         });
-        deasync_1.loopWhile(function () { return a; });
+        deasync_1.loopWhile(function () { return isRequestProcessing; });
         return result;
     };
     EveryqaInstance.prototype.publish = function (body) {
         var _this = this;
-        if (!Object.keys(body.tests).length) {
+        if (!body.tests || !Object.keys(body.tests).length) {
             return;
         }
         if (!this.runId) {
@@ -90,14 +91,18 @@ var EveryqaInstance = /** @class */ (function () {
             });
         }
         deasync.loopWhile(function () { return !_this.runId; });
-        return request({
+        var isRunFilled = false;
+        request({
             url: everyqaApiUrl + 'runs/' + this.runId + '/fill',
             data: body,
             method: 'POST',
             headers: {
                 Authorization: this.token,
             }
+        }).then(function () {
+            isRunFilled = true;
         });
+        deasync.loopWhile(function () { return !isRunFilled; });
     };
     EveryqaInstance.prototype.login = function (_a) {
         var _this = this;

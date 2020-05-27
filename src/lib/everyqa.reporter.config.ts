@@ -37,26 +37,6 @@ const schema: {
     },
 };
 
-function validateOptions(options: any) {
-    if (!options || !Object.keys(options).length) {
-        throw new Error(`Missing reporterOptions.`)
-    }
-    for (const name in schema) {
-        if (!schema[name]) {
-            delete options[name];
-            return;
-        }
-        if (schema[name].isRequired) {
-            if (!options[name]) {
-                throw new Error(`Missing option "${name}" in your reporterOptions.`)
-            }
-        }
-        if (schema[name].pattern && options[name] && !options[name].match(schema[name].pattern)) {
-            throw new Error(`Option "${name}" value should be a ${schema[name].patternDescription} but "${options[name]}" is given. Please check your reporterOptions`)
-        }
-    }
-}
-
 export class EveryqaReporterConfig {
 
     readonly email: string;
@@ -68,9 +48,18 @@ export class EveryqaReporterConfig {
     readonly screenshotsFolder: string;
 
     constructor(options: any) {
-        delete options.id;
-        validateOptions(options);
+        if (!options || !Object.keys(options).length) {
+            throw new Error(`Missing reporterOptions.`)
+        }
         for (const name in schema) {
+            if (schema[name].isRequired) {
+                if (!options[name]) {
+                    throw new Error(`Missing option "${name}" in your reporterOptions.`)
+                }
+            }
+            if (schema[name].pattern && options[name] && !options[name].match(schema[name].pattern)) {
+                throw new Error(`Option "${name}" value should be a ${schema[name].patternDescription} but "${options[name]}" is given. Please check your reporterOptions`)
+            }
             this[name] = schema[name].default && !options[name] ? schema[name].default : options[name];
         }
     }

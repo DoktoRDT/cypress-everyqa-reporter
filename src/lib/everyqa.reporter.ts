@@ -3,11 +3,15 @@ import {EveryqaInstance} from './everyqa.instance';
 import {Utils} from './utils';
 import * as path from 'path';
 import {EveryqaReporterConfig} from './everyqa.reporter.config';
-import Test = Mocha.Test;
 import {StatusesEnum} from './statuses.enum';
+import Test = Mocha.Test;
 
-interface ExtendedTest extends Test {
-    everyqaCaseId: string;
+export interface TestsObject {
+    [key: string]: {
+        everyqaCaseId: string,
+        attachmentIds: string[],
+        status: string
+    }
 }
 
 export class EveryqaReporter {
@@ -24,21 +28,15 @@ export class EveryqaReporter {
         if (this.config.runId) {
             everyqaInstance.runId = this.config.runId;
         }
-        const tests: {
-            [key: string]: {
-                everyqaCaseId: string,
-                attachmentIds: string[],
-                status: string
-            }
-        } = {};
+        const tests: TestsObject = {};
 
         runner.on('start', () => {
             this.specPath = path.resolve(runner.suite.file);
         });
 
-        runner.on('test end', (test: ExtendedTest) => {
-            test.everyqaCaseId = Utils.getEveryqaId(test.title);
-            if (!test.everyqaCaseId) {
+        runner.on('test end', (test: Test) => {
+            const everyqaCaseId = Utils.getEveryqaId(test.title);
+            if (!everyqaCaseId) {
                 return;
             }
             let status;
@@ -53,19 +51,22 @@ export class EveryqaReporter {
                     return;
             }
 
-            tests[test.everyqaCaseId] = {
-                everyqaCaseId: test.everyqaCaseId,
+            tests[everyqaCaseId] = {
+                everyqaCaseId,
+                status,
                 attachmentIds: [],
-                status
             };
         });
 
         runner.on('end', () => {
             const actualPath = this.specPath.replace(this.config.integrationFolder, this.config.screenshotsFolder);
             const diffPath = actualPath.replace('/actual', '/diff');
-            const actualScreenshotsObject = Utils.getScreenshotsPaths(actualPath);
-            const diffScreenshotsObject = Utils.getScreenshotsPaths(diffPath);
-            everyqaInstance.sendScreenshots([...actualScreenshotsObject, ...diffScreenshotsObject])
+            const actualScreenshotsPaths = Utils.getScreenshotsPaths(actualPath);
+            const diffScreenshotsPaths = Utils.getScreenshotsPaths(diffPath);
+            const screenshotsForUpload = [...actualScreenshotsPaths, ...diffScreenshotsPaths]
+                .filter(screenshot => tests[Utils.getEveryqaId(path.basename(screenshot))].status === StatusesEnum.Failed);
+
+            everyqaInstance.sendScreenshots(screenshotsForUpload)
                 .forEach(screenshot => {
                     const caseId = Utils.getEveryqaId(screenshot.name);
                     tests[caseId].attachmentIds.push(screenshot._id);

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.StatusesEnum = void 0;
 var StatusesEnum;
 (function (StatusesEnum) {
     StatusesEnum["Failed"] = "failed";
